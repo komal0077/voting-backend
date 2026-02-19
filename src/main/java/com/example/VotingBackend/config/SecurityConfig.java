@@ -14,6 +14,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
@@ -22,7 +24,8 @@ public class SecurityConfig {
     private final UserService userService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    public SecurityConfig(UserService userService, JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(UserService userService,
+                          JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.userService = userService;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
@@ -30,40 +33,18 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        // ❌ Disable CSRF (we use JWT)
+        // Disable CSRF (JWT based auth)
         http.csrf(csrf -> csrf.disable());
 
-        // ⭐ GLOBAL CORS CONFIG (FINAL)
-        http.cors(cors -> cors.configurationSource(request -> {
-            CorsConfiguration corsConfig = new CorsConfiguration();
+        // Enable CORS (uses global bean below)
+        http.cors(cors -> {});
 
-            // Allow Localhost + Vercel domains
-            corsConfig.setAllowedOriginPatterns(java.util.List.of(
-                    "http://localhost:4200",
-                    "https://*.vercel.app"
-            ));
-
-            corsConfig.setAllowedMethods(java.util.List.of(
-                    "GET", "POST", "PUT", "DELETE", "OPTIONS"
-            ));
-
-            corsConfig.setAllowedHeaders(java.util.List.of("*"));
-            corsConfig.setExposedHeaders(java.util.List.of("Authorization"));
-
-            // JWT uses headers → credentials not needed
-            corsConfig.setAllowCredentials(false);
-
-            return corsConfig;
-        }));
-
-
-        // ⭐ SECURITY RULES
         http.authorizeHttpRequests(auth -> auth
 
-                // VERY IMPORTANT → allow browser preflight requests
+                // Allow preflight requests
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // PUBLIC APIs (no login required)
+                // Public endpoints
                 .requestMatchers(
                         "/api/auth/**",
                         "/api/candidates",
@@ -71,25 +52,48 @@ public class SecurityConfig {
                         "/api/results/**"
                 ).permitAll()
 
-                // 🔒 All other APIs require JWT
+                // All others protected
                 .anyRequest().authenticated()
         );
 
-        // Stateless session (JWT)
         http.sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         );
 
-        // Authentication provider
         http.authenticationProvider(authenticationProvider());
 
-        // Add JWT filter before Spring login filter
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(jwtAuthenticationFilter,
+                UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // ⭐ Authentication Provider
+    // ⭐ GLOBAL CORS CONFIG (REAL FIX)
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        configuration.setAllowedOriginPatterns(java.util.List.of(
+                "http://localhost:4200",
+                "https://*.vercel.app"
+        ));
+
+        configuration.setAllowedMethods(java.util.List.of(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS"
+        ));
+
+        configuration.setAllowedHeaders(java.util.List.of("*"));
+        configuration.setAllowCredentials(false);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration("/**", configuration);
+
+        return source;
+    }
+
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
@@ -98,9 +102,9 @@ public class SecurityConfig {
         return provider;
     }
 
-    // ⭐ Authentication Manager
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 }
