@@ -41,10 +41,13 @@ public class SecurityConfig {
 
         http.authorizeHttpRequests(auth -> auth
 
-                // Allow preflight requests
+                // allow browser preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Public endpoints
+                // ⭐ CRITICAL FIX — allow POST register/login
+                .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
+
+                // allow public GET APIs
                 .requestMatchers(
                         "/api/auth/**",
                         "/api/candidates",
@@ -52,10 +55,9 @@ public class SecurityConfig {
                         "/api/results/**"
                 ).permitAll()
 
-                // All others protected
+                // everything else requires JWT
                 .anyRequest().authenticated()
         );
-
         http.sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         );
