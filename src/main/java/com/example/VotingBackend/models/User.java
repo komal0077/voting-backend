@@ -1,14 +1,13 @@
 package com.example.VotingBackend.models;
 
 import jakarta.persistence.*;
-
-import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
 @Getter
 @Setter
+@Table(name = "users")   // ⭐ FIXED TABLE NAME
 public class User {
 
     @Id
@@ -23,5 +22,5 @@ public class User {
 
     private String email;
 
-    private String role="ROLE_USER";
+    private String role = "ROLE_USER";
 }
