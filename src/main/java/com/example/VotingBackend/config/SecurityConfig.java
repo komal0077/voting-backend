@@ -46,7 +46,7 @@ public class SecurityConfig {
 
             corsConfig.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
             corsConfig.setAllowedHeaders(java.util.List.of("*"));
-            corsConfig.setAllowCredentials(true);
+            corsConfig.setAllowCredentials(false);
             return corsConfig;
         }));
 
