@@ -35,17 +35,34 @@ public class SecurityConfig {
 
         http.csrf(csrf -> csrf.disable());
 
+        // ✅ CORS FIX (Allow Vercel + Localhost)
         http.cors(cors -> cors.configurationSource(request -> {
             CorsConfiguration corsConfig = new CorsConfiguration();
-            corsConfig.setAllowedOrigins(java.util.List.of("http://localhost:4200"));
+
+            corsConfig.setAllowedOrigins(java.util.List.of(
+                    "http://localhost:4200",
+                    "https://*.vercel.app"   // ⭐ VERY IMPORTANT
+            ));
+
             corsConfig.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
             corsConfig.setAllowedHeaders(java.util.List.of("*"));
             corsConfig.setAllowCredentials(true);
             return corsConfig;
         }));
 
+
+        // ✅ PUBLIC + PROTECTED ENDPOINTS FIX
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
+
+                // PUBLIC (no login needed)
+                .requestMatchers(
+                        "/api/auth/**",
+                        "/api/candidates",
+                        "/api/parties",
+                        "/api/results/**"
+                ).permitAll()
+
+                // EVERYTHING ELSE NEEDS TOKEN
                 .anyRequest().authenticated()
         );
 
