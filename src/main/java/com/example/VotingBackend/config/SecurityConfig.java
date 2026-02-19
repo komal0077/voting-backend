@@ -39,9 +39,9 @@ public class SecurityConfig {
         http.cors(cors -> cors.configurationSource(request -> {
             CorsConfiguration corsConfig = new CorsConfiguration();
 
-            corsConfig.setAllowedOrigins(java.util.List.of(
+            corsConfig.setAllowedOriginPatterns(java.util.List.of(
                     "http://localhost:4200",
-                    "https://*.vercel.app"   // ⭐ VERY IMPORTANT
+                    "https://*.vercel.app"
             ));
 
             corsConfig.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
